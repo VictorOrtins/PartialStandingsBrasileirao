@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-import time
+
+from utils.utils import get_classification_table, get_table_df
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -10,78 +11,53 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 options = webdriver.ChromeOptions()
-options.add_experimental_option('excludeSwitches', ['enable-logging'])  # Remove logs desnecessários
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+options.add_experimental_option(
+    "excludeSwitches", ["enable-logging"]
+)  # Remove logs desnecessários
+driver = webdriver.Chrome(
+    service=Service(ChromeDriverManager().install()), options=options
+)
 
-for year in range(1995, 2018):
-    for matchweek in [10, 20, 30, 38]:
-        try: #Se há algum erro, só ignora
-            url = f'https://www.transfermarkt.com/premier-league/formtabelle/wettbewerb/GB1?saison_id={year}&min=1&max={matchweek}'
+for year in range(2015, 2018):
+    rank_table_df = pd.DataFrame(columns=[i for i in range(1, 39)])
+    for matchweek in range(1, 39):
+        while True:
+            try:  # Se há algum erro, só tenta de novo
+                url = f"https://www.transfermarkt.com/premier-league/formtabelle/wettbewerb/GB1?saison_id={year}&min=1&max={matchweek}"
 
-            print('Chegou no loop', url)
-            
-            driver.get(url)
+                print("Chegou no loop", url)
 
-            time.sleep(10)
-            
-            print('Esperando a tabela ser carregada')
+                table = get_classification_table(driver, url)
 
-            WebDriverWait(driver, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "responsive-table"))
-            )
-            
-            responsive_div = driver.find_element(By.CLASS_NAME, "responsive-table")
+                if not table:
+                    print(f"Tabela não encontrada em {url}")
+                    continue
 
-            table = responsive_div.find_element(By.TAG_NAME, "table")
+                WebDriverWait(driver, 30).until(
+                    EC.presence_of_all_elements_located((By.TAG_NAME, "td"))
+                )
 
-            if not table:
-                print(f"Tabela não encontrada em {url}")
+                df = get_table_df(table)
+
+                if matchweek == 1:
+                    clubs = df['Club']
+                    for index, club in enumerate(clubs):
+                        rank_table_df.at[index,'Club'] = club
+                        rank_table_df.at[index,matchweek] = index + 1
+                else:
+                    for index, row in df.iterrows():
+                        club = row['Club']
+
+                        club_index = rank_table_df[rank_table_df['Club'] == club].index
+                        club_index = club_index.item()
+                        rank_table_df.at[club_index, matchweek] = row['#']
+
+            except Exception:
                 continue
 
-            WebDriverWait(driver, 30).until(
-                EC.presence_of_all_elements_located((By.TAG_NAME, "td"))
-            )
+            break
 
-
-            # Listas para armazenar os dados
-            headers = []
-            rows = []
-            indexes = []
-
-            print("Encontrando cabeçalhos da tabela")
-            thead = table.find_element(By.TAG_NAME, 'thead')
-            headers = [th.text.strip() for th in thead.find_elements(By.TAG_NAME, 'th')]    
-            headers.append('url')
-
-            tbody = table.find_element(By.TAG_NAME, 'tbody')
-
-            for row in tbody.find_elements(By.TAG_NAME, 'tr'):
-                columns = row.find_elements(By.TAG_NAME, 'td')
-                if columns:
-                    # Posição na tabela
-                    index = row.find_elements(By.TAG_NAME, 'td')[0].text.strip() if row.find_elements(By.TAG_NAME, 'td') else '-'
-                    print(index)
-                    indexes.append(index)
-
-                    # Resto das linhas
-                    row_data = [col.text.strip() for col in columns]
-                    print(row_data)
-                    rows.append(row_data)
-
-            df = pd.DataFrame(rows, columns=headers, index=indexes)
-            df.index.name = headers[0]
-
-            # Remover colunas duplicadas
-            df = df.loc[:, ~df.columns.duplicated(keep='first')]
-
-            df['Club'] = df['']
-            df['SG'] = df['Pts']
-            df['Pts'] = df['url']
-            df.drop(columns=['', 'url'], inplace=True)
-            
-            df.to_csv(os.path.join('data', 'PremierLeague', f'{year}_{matchweek}.csv'))
-        except Exception:
-            continue
+        rank_table_df.to_csv(os.path.join("data", "PremierLeague", f"{year}.csv"))
 
 # Fechar o navegador
 driver.quit()
