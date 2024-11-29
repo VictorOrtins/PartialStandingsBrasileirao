@@ -4,17 +4,41 @@ import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 
-project_path = os.path.abspath(os.path.join(os.getcwd(), '..'))
+project_path = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(project_path)
 
-from src.calculations.utils import spearman_corr, normalized_tau_distance
+from src.calculations.corr import spearman_corr, normalized_tau_distance  # noqa: E402
+from src.calculations.utils import spearman_tau_table
 
-def positions_visualization(year_table: pd.DataFrame, line_width: float = 0.9, fig_size: tuple = (14,8), colors: list = None):
+
+def positions_visualization(
+    year_table: pd.DataFrame,
+    line_width: float = 0.9,
+    fig_size: tuple = (14, 8),
+    colors: list = None,
+):
     if colors is None:
         colors = [
-            "red", "blue", "green", "orange", "purple", "brown", "pink", "gray", 
-            "olive", "cyan", "magenta", "teal", "gold", "lime", "navy", "maroon", 
-            "violet", "turquoise", "indigo", "salmon"
+            "red",
+            "blue",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "pink",
+            "gray",
+            "olive",
+            "cyan",
+            "magenta",
+            "teal",
+            "gold",
+            "lime",
+            "navy",
+            "maroon",
+            "violet",
+            "turquoise",
+            "indigo",
+            "salmon",
         ]
 
     plt.figure(figsize=fig_size)
@@ -24,37 +48,38 @@ def positions_visualization(year_table: pd.DataFrame, line_width: float = 0.9, f
         y = row.to_list()[:-1]
         plt.plot(x, y, color=colors[index], linewidth=line_width)
 
-
     plt.xticks(ticks=[9, 19, 29], rotation=90)
-    plt.yticks(ticks=[i for i in range(1, 21)], labels=year_table['Club'].to_list())
+    plt.yticks(ticks=[i for i in range(1, 21)], labels=year_table["Club"].to_list())
 
     plt.gca().invert_yaxis()
 
-
     ax = plt.gca()
     ax_right = ax.twinx()  # Criar um eixo Y adicional no lado direito
-    ax_right.set_ylim(ax.get_ylim())  # Sincronizar os limites do eixo direito com o esquerdo
+    ax_right.set_ylim(
+        ax.get_ylim()
+    )  # Sincronizar os limites do eixo direito com o esquerdo
     ax_right.set_yticks([20, 15, 10, 5, 1])  # Mesmos ticks do eixo esquerdo
 
-    ax_right.set_label('Posição')
-    plt.xlabel('Rodada')
-
+    ax_right.set_label("Posição")
+    plt.xlabel("Rodada")
 
     plt.show()
 
-def spearman_tau_visualization(year_table: pd.DataFrame, line_width: float = 0.9, fig_size: tuple = (14,8), colors: list = None):
+
+def spearman_tau_visualization(
+    year_table: pd.DataFrame,
+    line_width: float = 0.9,
+    fig_size: tuple = (14, 8),
+    colors: list = None,
+    plot_points: tuple = None
+):
     if colors is None:
-        colors = ['orange', 'black']
-    
-    plot_points_corr = []
-    plot_points_tau = []
+        colors = ["orange", "black"]
 
-    for i in range(1, 39):
-        rho, _ = spearman_corr(year_table[f'{i}'].to_list(), year_table['38'].to_list())
-        plot_points_corr.append(rho)
-
-        norm_tau_distance = normalized_tau_distance(year_table[f'{i}'].to_list(), year_table['38'].to_list())
-        plot_points_tau.append(norm_tau_distance)
+    if plot_points is None:
+        plot_points_corr, plot_points_tau = spearman_tau_table(year_table, return_as_list=True)
+    else:
+        plot_points_corr, plot_points_tau = plot_points[0], plot_points[1]
 
     x = [i for i in range(1, 39)]
     y = plot_points_corr
@@ -64,8 +89,12 @@ def spearman_tau_visualization(year_table: pd.DataFrame, line_width: float = 0.9
     plt.yticks(ticks=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
     plt.ylim((-0.1, 1.1))
 
-    plt.axhline(y=1.0, color='red', linestyle='--', linewidth=line_width).set_dashes([10,5])
-    plt.axhline(y=0.0, color='red', linestyle='--', linewidth=line_width).set_dashes([10,5])
+    plt.axhline(y=1.0, color="red", linestyle="--", linewidth=line_width).set_dashes(
+        [10, 5]
+    )
+    plt.axhline(y=0.0, color="red", linestyle="--", linewidth=line_width).set_dashes(
+        [10, 5]
+    )
 
     plt.xticks(ticks=[10, 20, 30])
     plt.plot(x, y, label="Correlação de Spearman")
