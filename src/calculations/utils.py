@@ -3,7 +3,7 @@ import sys
 
 import pandas as pd
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 project_path = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(project_path)
