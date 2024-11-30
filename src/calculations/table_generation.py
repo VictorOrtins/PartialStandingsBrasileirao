@@ -1,27 +1,44 @@
 import numpy as np
 import pandas as pd
 
+from typing import List, Tuple
 
-def generate_table(poisson_mean: float, n_teams: int = 20,  random_seed: int = 42):
+
+def generate_table(
+    poisson_mean: float, n_teams: int = 20, random_seed: int = 42
+) -> pd.DataFrame:
+    """
+    Generates a table of football standings by simulating match results over a season.
+
+    Parameters:
+        poisson_mean (float): The mean of the Poisson distribution for simulating match goals.
+        n_teams (int, optional): The number of teams in the league. Default is 20.
+        random_seed (int, optional): The seed for the random number generator. Default is 42.
+
+    Returns:
+        pd.DataFrame: A dataframe containing the standings with the club positions after each matchweek.
+    """
     np.random.seed(random_seed)
 
     team_names = list(range(0, n_teams))
 
-    standings = pd.DataFrame({
-        "Club": team_names,
-        "Pts": 0,
-        "Matches": 0,
-        "W": 0,
-        "D": 0,
-        "L": 0,
-        "+": 0,
-        "-": 0,
-        "SG": 0,
-        "Position": 0
-    })
+    standings = pd.DataFrame(
+        {
+            "Club": team_names,
+            "Pts": 0,
+            "Matches": 0,
+            "W": 0,
+            "D": 0,
+            "L": 0,
+            "+": 0,
+            "-": 0,
+            "SG": 0,
+            "Position": 0,
+        }
+    )
 
     fixtures = generate_matchweeks(n_teams)
-    
+
     rank_table_df = pd.DataFrame(columns=[f"{i}" for i in range(1, 39)])
 
     for matchweek_i, matchweek in enumerate(fixtures):
@@ -58,40 +75,64 @@ def generate_table(poisson_mean: float, n_teams: int = 20,  random_seed: int = 4
 
         position = 1
         for _, row in standings.iterrows():
-            row['Position'] = position
+            row["Position"] = position
             position += 1
 
         if matchweek_i == 0:
-            clubs = standings['Club']
+            clubs = standings["Club"]
             for index, club in enumerate(clubs):
-                rank_table_df.at[index,'Club'] = int(club)
-                rank_table_df.at[index,f"{matchweek_i + 1}"] = index + 1
+                rank_table_df.at[index, "Club"] = int(club)
+                rank_table_df.at[index, f"{matchweek_i + 1}"] = index + 1
         else:
             for index, row in standings.iterrows():
-                club = row['Club']
+                club = row["Club"]
 
-                club_index = rank_table_df[rank_table_df['Club'] == club].index
+                club_index = rank_table_df[rank_table_df["Club"] == club].index
                 club_index = club_index.item()
-                rank_table_df.at[club_index, f"{matchweek_i + 1}"] = int(row['Position'])
+                rank_table_df.at[club_index, f"{matchweek_i + 1}"] = int(
+                    row["Position"]
+                )
 
     return rank_table_df
 
 
-def simulate_match(poisson_mean: float):
+def simulate_match(poisson_mean: float) -> Tuple[float, float]:
+    """
+    Simulates the result of a football match based on a Poisson distribution.
+
+    Parameters:
+        poisson_mean (float): The mean number of goals scored in a match.
+
+    Returns:
+        tuple: A tuple containing the goals scored by the home team and away team.
+    """
+
     goals_a = np.random.poisson(poisson_mean)
     goals_b = np.random.poisson(poisson_mean)
 
     return goals_a, goals_b
 
-def generate_matchweeks(n_teams: int = 20):
+
+def generate_matchweeks(n_teams: int = 20) -> List[List[Tuple[int, int]]]:
+    """
+    Generates matchweeks for a round-robin league with home and away fixtures.
+
+    Parameters:
+        n_teams (int, optional): The number of teams in the league. Must be even. Default is 20.
+
+    Returns:
+        list of lists: A list of rounds, where each round contains a list of matchups.
+
+    Raises:
+        Exception: If the number of teams is odd, an exception will be raised.
+    """
 
     if n_teams % 2 == 1:
         raise Exception("Number of teams must be even")
-    
+
     teams = list(range(0, n_teams))
     anchor = teams[0]
     rotating_teams = teams[1:]
-
 
     first_legs = []
     for _ in range(n_teams - 1):
@@ -115,4 +156,3 @@ def generate_matchweeks(n_teams: int = 20):
     rounds = first_legs + second_legs
 
     return rounds
-    
