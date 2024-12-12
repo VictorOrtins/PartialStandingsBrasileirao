@@ -12,6 +12,17 @@ from src.calculations.corr import spearman_corr, normalized_tau_distance  # noqa
 from src.calculations.table_generation import generate_table  # noqa: E402
 
 
+def get_plot_points(year_table: pd.DataFrame, matchweek: int, plot_points_corr: List[float], plot_points_tau: List[float]):
+    rho, _ = spearman_corr(year_table[f"{matchweek}"].to_list(), year_table["38"].to_list())
+    plot_points_corr.append(rho)
+
+    norm_tau_distance: float = normalized_tau_distance(
+        year_table[f"{matchweek}"].to_list(), year_table["38"].to_list()
+    )
+    plot_points_tau.append(norm_tau_distance)
+
+    return plot_points_corr, plot_points_tau
+
 def spearman_tau_table(
     year_table: pd.DataFrame, return_as_list: bool = False
 ) -> pd.DataFrame:
@@ -32,13 +43,7 @@ def spearman_tau_table(
     plot_points_tau: List[float] = []
 
     for i in range(1, 39):
-        rho, _ = spearman_corr(year_table[f"{i}"].to_list(), year_table["38"].to_list())
-        plot_points_corr.append(rho)
-
-        norm_tau_distance: float = normalized_tau_distance(
-            year_table[f"{i}"].to_list(), year_table["38"].to_list()
-        )
-        plot_points_tau.append(norm_tau_distance)
+        plot_points_corr, plot_points_tau = get_plot_points(year_table, i, plot_points_corr, plot_points_tau)
 
     if return_as_list:
         return plot_points_corr, plot_points_tau
