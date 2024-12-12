@@ -6,9 +6,9 @@ from typing import List, Tuple
 def init_standings(n_teams: int = 20, random_seed: int = 42):
     np.random.seed(random_seed)
 
-    team_names = list(range(0, n_teams))
+    team_names: List[int] = list(range(0, n_teams))
 
-    standings = pd.DataFrame(
+    standings: pd.DataFrame = pd.DataFrame(
         {
             "Club": team_names,
             "Pts": 0,
@@ -23,7 +23,7 @@ def init_standings(n_teams: int = 20, random_seed: int = 42):
         }
     )
 
-    rank_table_df = pd.DataFrame(columns=[f"{i}" for i in range(1, 39)])
+    rank_table_df: pd.DataFrame = pd.DataFrame(columns=[f"{i}" for i in range(1, 39)])
 
     return rank_table_df, standings
 
@@ -70,15 +70,15 @@ def set_table_positions(standings: pd.DataFrame):
 
 def update_rank_table(rank_table_df: pd.DataFrame, standings:pd.DataFrame, matchweek: int):
     if matchweek == 0:
-        clubs = standings["Club"]
+        clubs: pd.Series = standings["Club"]
         for index, club in enumerate(clubs):
             rank_table_df.at[index, "Club"] = int(club)
             rank_table_df.at[index, f"{matchweek + 1}"] = index + 1
     else:
         for index, row in standings.iterrows():
-            club = row["Club"]
+            club: str = row["Club"]
 
-            club_index = rank_table_df[rank_table_df["Club"] == club].index
+            club_index: int = rank_table_df[rank_table_df["Club"] == club].index
             club_index = club_index.item()
             rank_table_df.at[club_index, f"{matchweek + 1}"] = int(
                 row["Position"]
@@ -104,7 +104,7 @@ def generate_table(
 
     rank_table_df, standings = init_standings(n_teams, random_seed)
 
-    fixtures = generate_matchweeks(n_teams)
+    fixtures: List[List[Tuple[int, int]]] = generate_matchweeks(n_teams)
 
     for matchweek_i, matchweek in enumerate(fixtures):
         for match in matchweek:
@@ -132,8 +132,8 @@ def simulate_match(poisson_mean: float) -> Tuple[float, float]:
         tuple: A tuple containing the goals scored by the home team and away team.
     """
 
-    goals_a = np.random.poisson(poisson_mean)
-    goals_b = np.random.poisson(poisson_mean)
+    goals_a: float = np.random.poisson(poisson_mean)
+    goals_b: float = np.random.poisson(poisson_mean)
 
     return goals_a, goals_b
 
@@ -155,16 +155,16 @@ def generate_matchweeks(n_teams: int = 20) -> List[List[Tuple[int, int]]]:
     if n_teams % 2 == 1:
         raise Exception("Number of teams must be even")
 
-    teams = list(range(0, n_teams))
-    anchor = teams[0]
-    rotating_teams = teams[1:]
+    teams: List[int] = list(range(0, n_teams))
+    anchor: int = teams[0]
+    rotating_teams: List = teams[1:]
 
-    first_legs = []
+    first_legs: List[Tuple[int]] = []
     for _ in range(n_teams - 1):
-        round_matches = []
+        round_matches: List = []
         for j in range(len(rotating_teams) // 2):
-            home = rotating_teams[j]
-            away = rotating_teams[-(j + 1)]
+            home: int = rotating_teams[j]
+            away: int = rotating_teams[-(j + 1)]
             round_matches.append((home, away))
 
         round_matches.append((anchor, rotating_teams[len(rotating_teams) // 2]))
@@ -173,9 +173,9 @@ def generate_matchweeks(n_teams: int = 20) -> List[List[Tuple[int, int]]]:
 
         rotating_teams = [rotating_teams[-1]] + rotating_teams[:-1]
 
-    second_legs = []
+    second_legs: List[Tuple[int]] = []
     for round in first_legs:
-        new_round = [(match[1], match[0]) for match in round]
+        new_round: List[Tuple[int]] = [(match[1], match[0]) for match in round]
         second_legs.append(new_round)
 
     rounds = first_legs + second_legs

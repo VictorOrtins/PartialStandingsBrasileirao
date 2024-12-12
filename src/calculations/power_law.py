@@ -26,8 +26,8 @@ class TauPowerLaw:
             power_coefficient (float): The exponent coefficient for the power law.
             multiplier_coefficient (float): The multiplier coefficient for the power law.
         """
-        self.a = power_coefficient
-        self.b = multiplier_coefficient
+        self.a: float = power_coefficient
+        self.b: float = multiplier_coefficient
 
     def tau_distance(self, round: int) -> float:
         """

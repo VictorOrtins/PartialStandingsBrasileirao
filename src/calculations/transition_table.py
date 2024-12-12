@@ -8,11 +8,11 @@ def calculate_transitions_year(
     init_round: int = 10,
     final_round: int = 38,
 ):
-    init_round_standings = rank_table_df[f"{init_round}"]
-    final_round_standings = rank_table_df[f"{final_round}"]
+    init_round_standings: pd.Series = rank_table_df[f"{init_round}"]
+    final_round_standings: pd.Series = rank_table_df[f"{final_round}"]
 
     for index, init_round_standing in init_round_standings.items():
-        final_round_standing = final_round_standings.loc[index]
+        final_round_standing: int = final_round_standings.loc[index]
         transition_table_df.at[init_round_standing, final_round_standing] += 1
 
     return transition_table_df
@@ -21,7 +21,7 @@ def calculate_transitions_year(
 def calculate_transitions_history(
     rank_tables_list: list, init_round: int = 10, final_round: int = 38
 ):
-    transition_table_df = pd.DataFrame(
+    transition_table_df: pd.DataFrame = pd.DataFrame(
         0, columns=[i for i in range(1, 21)], index=[i for i in range(1, 21)]
     )
 

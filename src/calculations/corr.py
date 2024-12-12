@@ -61,10 +61,10 @@ def normalized_tau_distance(
         )
 
     tau_corr, _ = kendalltau(partial_standings, final_standings)
-    tau_distance = (
+    tau_distance: float = (
         (1 - tau_corr) * (len(partial_standings) * (len(partial_standings) - 1))
     ) / 4
-    normalized_tau_distance = (
+    normalized_tau_distance: float = (
         2 * tau_distance / (len(partial_standings) * (len(partial_standings) - 1))
     )
 
