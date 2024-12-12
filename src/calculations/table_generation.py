@@ -3,21 +3,7 @@ import pandas as pd
 
 from typing import List, Tuple
 
-
-def generate_table(
-    poisson_mean: float, n_teams: int = 20, random_seed: int = 42
-) -> pd.DataFrame:
-    """
-    Generates a table of football standings by simulating match results over a season.
-
-    Parameters:
-        poisson_mean (float): The mean of the Poisson distribution for simulating match goals.
-        n_teams (int, optional): The number of teams in the league. Default is 20.
-        random_seed (int, optional): The seed for the random number generator. Default is 42.
-
-    Returns:
-        pd.DataFrame: A dataframe containing the standings with the club positions after each matchweek.
-    """
+def init_standings(n_teams: int = 20, random_seed: int = 42):
     np.random.seed(random_seed)
 
     team_names = list(range(0, n_teams))
@@ -37,61 +23,100 @@ def generate_table(
         }
     )
 
-    fixtures = generate_matchweeks(n_teams)
-
     rank_table_df = pd.DataFrame(columns=[f"{i}" for i in range(1, 39)])
+
+    return rank_table_df, standings
+
+def update_goals_from_match(standings: pd.DataFrame, match: Tuple[int, int], goals_a: int, goals_b: int):
+    standings.loc[match[0], "Matches"] += 1
+    standings.loc[match[1], "Matches"] += 1
+
+    standings.loc[match[0], "+"] += goals_a
+    standings.loc[match[1], "+"] += goals_b
+
+    standings.loc[match[0], "-"] += goals_b
+    standings.loc[match[1], "-"] += goals_a
+
+    standings.loc[match[0], "SG"] += goals_a - goals_b
+    standings.loc[match[1], "SG"] += goals_b - goals_a
+
+    return standings
+
+def update_table(standings: pd.DataFrame, match: Tuple[int, int], goals_a: int, goals_b: int):
+    if goals_a > goals_b:
+        standings.loc[match[0], "W"] += 1
+        standings.loc[match[1], "L"] += 1
+        standings.loc[match[0], "Pts"] += 3
+    elif goals_a < goals_b:
+        standings.loc[match[1], "W"] += 1
+        standings.loc[match[0], "L"] += 1
+        standings.loc[match[1], "Pts"] += 3
+    else:
+        standings.loc[match[0], "D"] += 1
+        standings.loc[match[1], "D"] += 1
+        standings.loc[match[0], "Pts"] += 1
+        standings.loc[match[1], "Pts"] += 1
+
+    return standings
+
+def set_table_positions(standings: pd.DataFrame):
+    standings = standings.sort_values(by=["Pts", "SG", "+"], ascending=False)
+    position = 1
+    for _, row in standings.iterrows():
+        row["Position"] = position
+        position += 1
+
+    return standings
+
+def update_rank_table(rank_table_df: pd.DataFrame, standings:pd.DataFrame, matchweek: int):
+    if matchweek == 0:
+        clubs = standings["Club"]
+        for index, club in enumerate(clubs):
+            rank_table_df.at[index, "Club"] = int(club)
+            rank_table_df.at[index, f"{matchweek + 1}"] = index + 1
+    else:
+        for index, row in standings.iterrows():
+            club = row["Club"]
+
+            club_index = rank_table_df[rank_table_df["Club"] == club].index
+            club_index = club_index.item()
+            rank_table_df.at[club_index, f"{matchweek + 1}"] = int(
+                row["Position"]
+            )
+
+    return rank_table_df, standings
+
+
+def generate_table(
+    poisson_mean: float, n_teams: int = 20, random_seed: int = 42
+) -> pd.DataFrame:
+    """
+    Generates a table of football standings by simulating match results over a season.
+
+    Parameters:
+        poisson_mean (float): The mean of the Poisson distribution for simulating match goals.
+        n_teams (int, optional): The number of teams in the league. Default is 20.
+        random_seed (int, optional): The seed for the random number generator. Default is 42.
+
+    Returns:
+        pd.DataFrame: A dataframe containing the standings with the club positions after each matchweek.
+    """
+
+    rank_table_df, standings = init_standings(n_teams, random_seed)
+
+    fixtures = generate_matchweeks(n_teams)
 
     for matchweek_i, matchweek in enumerate(fixtures):
         for match in matchweek:
             goals_a, goals_b = simulate_match(poisson_mean)
 
-            standings.loc[match[0], "Matches"] += 1
-            standings.loc[match[1], "Matches"] += 1
+            standings = update_goals_from_match(standings, match, goals_a, goals_b)
+            standings = update_table(standings, match, goals_a, goals_b)
 
-            standings.loc[match[0], "+"] += goals_a
-            standings.loc[match[1], "+"] += goals_b
+        standings = set_table_positions(standings)
 
-            standings.loc[match[0], "-"] += goals_b
-            standings.loc[match[1], "-"] += goals_a
+        rank_table_df, standings = update_rank_table(rank_table_df, standings, matchweek_i)
 
-            standings.loc[match[0], "SG"] += goals_a - goals_b
-            standings.loc[match[1], "SG"] += goals_b - goals_a
-
-            if goals_a > goals_b:
-                standings.loc[match[0], "W"] += 1
-                standings.loc[match[1], "L"] += 1
-                standings.loc[match[0], "Pts"] += 3
-            elif goals_a < goals_b:
-                standings.loc[match[1], "W"] += 1
-                standings.loc[match[0], "L"] += 1
-                standings.loc[match[1], "Pts"] += 3
-            else:
-                standings.loc[match[0], "D"] += 1
-                standings.loc[match[1], "D"] += 1
-                standings.loc[match[0], "Pts"] += 1
-                standings.loc[match[1], "Pts"] += 1
-
-        standings = standings.sort_values(by=["Pts", "SG", "+"], ascending=False)
-
-        position = 1
-        for _, row in standings.iterrows():
-            row["Position"] = position
-            position += 1
-
-        if matchweek_i == 0:
-            clubs = standings["Club"]
-            for index, club in enumerate(clubs):
-                rank_table_df.at[index, "Club"] = int(club)
-                rank_table_df.at[index, f"{matchweek_i + 1}"] = index + 1
-        else:
-            for index, row in standings.iterrows():
-                club = row["Club"]
-
-                club_index = rank_table_df[rank_table_df["Club"] == club].index
-                club_index = club_index.item()
-                rank_table_df.at[club_index, f"{matchweek_i + 1}"] = int(
-                    row["Position"]
-                )
 
     return rank_table_df
 
