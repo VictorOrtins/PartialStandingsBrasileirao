@@ -1,5 +1,9 @@
 from typing import List
 
+import numpy as np
+
+from scipy.optimize import curve_fit
+
 
 class TauPowerLaw:
     """
@@ -53,3 +57,28 @@ class TauPowerLaw:
             list of float: A list of Kendall-tau distances for each round in the given range.
         """
         return [self.tau_distance(round) for round in range(init_round, end_round + 1)]
+    
+    def r_square(self, tau_points: List[float]):
+        predicted_points = self.taus_distances(1, 38)
+
+        residuals = np.array(tau_points) - np.array(predicted_points)
+        residuals_sum_of_squares = np.sum(residuals**2)
+        total_sum_of_squares = np.sum( (tau_points - np.mean(predicted_points))**2)
+        
+        return 1 - (residuals_sum_of_squares/total_sum_of_squares)
+    
+    def area_under_curve(self, tau_points: List[float], init_round: int, end_round: int):
+        return np.trapezoid(tau_points, [i for i in range(init_round, end_round + 1)])
+
+    def generic_power_law(round: int, power_coefficient: float, multiplier_coefficient: float):
+        return multiplier_coefficient * round ** power_coefficient
+    
+    def get_power_law_coefficients(tau_points: List[float], init_round: int, end_round: int, full_return=False):
+        params, covariance = curve_fit(TauPowerLaw.generic_power_law, [i for i in range(init_round, end_round + 1)], tau_points)
+        a, b = params
+
+        if full_return:
+            return a, b, covariance
+        
+        return a, b
+
